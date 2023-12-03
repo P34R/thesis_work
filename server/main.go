@@ -10,19 +10,25 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"github.com/gookit/config"
+	"github.com/gookit/config/yaml"
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"log"
 	"math/big"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
 )
 
 var two64 = (big.NewInt(0)).Exp(big.NewInt(2), big.NewInt(64), nil)
-var myStore = store.NewStore("postgres", "admin", "localhost", "messengerdb", "disable")
+
+// var myStore = store.NewStore("postgres", "admin", "localhost", "messengerdb", "disable")
+var myStore = &store.Store{}
 var key ecdsa.PrivateKey
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  2048,
@@ -33,12 +39,27 @@ var upgrader = websocket.Upgrader{
 var conns = models.NewConnections()
 
 func main() {
+
+	config.AddDriver(yaml.Driver)
+	err := config.LoadFiles("thesis_work/server/config.yaml")
+	if err != nil {
+		fmt.Println(os.Getwd())
+		fmt.Println(err.Error())
+		panic(err)
+	}
+	var url, _ = config.String("db")
+	myStore = store.NewStoreURL(url)
 	//setting keys, etc. Should be in the config probably :/
+	//919a3e190688a262da21239706c80a4a5b11f897514bc9dcbae3aa627f72ade5
+	//365e1e475d29cafbc09e72e2147633e535f61c6a6b2edf456b08c7d2abec8290
+	// X then Y
 	{
-		
-		keyD, _ := (big.NewInt(0)).SetString("___", 16) // Enter server's private key here (a big number). curve - P256.
-		keyX, _ := (big.NewInt(0)).SetString("___", 16) // Enter server's public key part (X coordinate) here. Should be derived from the private key.
-		keyY, _ := (big.NewInt(0)).SetString("___", 16) // Enter server's public key part (Y coordinate) here. Should be derived from the private key (or X coordinate).
+		configPriv, _ := config.String("server_private_key")
+		keyD, _ := big.NewInt(0).SetString(configPriv, 16)
+		keyX, keyY := elliptic.P256().ScalarBaseMult(keyD.Bytes())
+		//	keyD, _ := (big.NewInt(0)).SetString("___", 16) // Enter server's private key here (a big number). curve - P256.
+		//	keyX, _ := (big.NewInt(0)).SetString("___", 16) // Enter server's public key part (X coordinate) here. Should be derived from the private key.
+		//	keyY, _ := (big.NewInt(0)).SetString("___", 16) // Enter server's public key part (Y coordinate) here. Should be derived from the private key (or X coordinate).
 		key = ecdsa.PrivateKey{
 			PublicKey: ecdsa.PublicKey{
 				Curve: elliptic.P256(),
@@ -56,6 +77,7 @@ func main() {
 	ec.POST("api/login/user", loginUser)       // api/login
 	ec.GET("api/get/user/:name", findUser)     // api/get/user/:name
 	ec.GET("api/ws/:name/:sig", openWs)        // api/ws/
+	ec.GET("/ping", pong)
 	ec.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{"*"},
 		AllowMethods: []string{http.MethodGet, http.MethodHead, http.MethodPut, http.MethodPatch, http.MethodPost, http.MethodDelete},
@@ -63,7 +85,9 @@ func main() {
 	defer conns.CloseAllConns()
 	ec.Logger.Fatal(ec.Start(":8081"))
 }
-
+func pong(c echo.Context) error {
+	return c.String(http.StatusOK, "asd")
+}
 func findUser(c echo.Context) error {
 	name := c.Param("name")
 	user, err := myStore.GetUser(name)
@@ -150,6 +174,7 @@ func getUser(c echo.Context) error {
 		SignNonce   string `json:"nonce"`
 	}
 	if user, err := myStore.GetUser(sar.Username); err != nil && err != sql.ErrNoRows {
+		log.Println("ERROR        ", err.Error())
 		log.Println(user.Id)
 		if user.Id != 0 {
 			log.Println("dropped 3      ", user)
@@ -376,7 +401,14 @@ func SocketLogic(username string, soc *models.Socket) {
 						}
 						log.Println(username, " 12")
 						log.Println("sending message")
-						conns.SendMessage(packet)
+						sendiblePacket := models.SendiblePacket{
+							Type:    packet.Type,
+							From:    packet.Message,
+							To:      packet.To,
+							Message: packet.Message,
+							Stamp:   mess.Stamp,
+						}
+						conns.SendMessage(sendiblePacket)
 						log.Println(username, " 13")
 					}
 				}
@@ -462,6 +494,7 @@ func SocketLogic(username string, soc *models.Socket) {
 				type messReturn struct {
 					From    string `json:"username"`
 					Message string `json:"mess"`
+					Stamp   int64  `json:"stamp"`
 				}
 				storyReturn := make([]messReturn, 0, 5)
 				messages, err2 := myStore.GetMessages(chat, 5, i)
@@ -477,6 +510,7 @@ func SocketLogic(username string, soc *models.Socket) {
 						mr.From = packet.From
 					}
 					mr.Message = messages[i].Mess
+					mr.Stamp = messages[i].Stamp
 					storyReturn = append(storyReturn, mr)
 				}
 				log.Println("packet in 110________3")
@@ -501,6 +535,16 @@ func SocketLogic(username string, soc *models.Socket) {
 				}
 				log.Println("packet in 110________5")
 				break
+			case 999:
+				usr, err := myStore.GetUser(packet.From)
+				if err != nil {
+					log.Println("del acc get usr, case 999:      ", err)
+				}
+				err = myStore.DeleteAccount(usr.Id)
+				if err != nil {
+					log.Println("del acc, case 999:      ", err)
+				}
+
 			}
 			packet.Message = ""
 			log.Println("we are here ", username)

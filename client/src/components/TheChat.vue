@@ -2,8 +2,11 @@
   <div
     class="mess"
     :class="otherMsg ? 'active' : ''"
-  ><p style="font-weight: bold; color:black">{{username}} </p>
+  >
+    <p style="font-weight: bold; color:black">{{username}} </p>
     <p class="">  {{ message }}</p>
+    <p style="text-align: right; font-size: 8px"> {{ stamp.getDate() +'.'+(parseInt(stamp.getMonth())+1)+'.'+stamp.getFullYear()+' '+stamp.getHours()+':'+stamp.getMinutes() }}</p>
+
 
 <!--    <button v-on:click="deleteChat(Id)" v-if="isHovering">Delete</button> -->
   </div>
@@ -11,7 +14,7 @@
 
 <script>
 export default {
-  props: ["username", "message" ], //chat id
+  props: ["username", "message", "stamp" ], //chat id
 
   data() {
     return {

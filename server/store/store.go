@@ -22,10 +22,51 @@ func NewStore(user, pass, address, dbname, ssl string) *Store {
 
 	return &Store{url, db}
 }
+func NewStoreURL(url string) *Store {
+	db, err := sql.Open("postgres", url)
+	if err != nil {
+		panic(err)
+	}
+
+	return &Store{url, db}
+}
 func (s *Store) Close() {
 	if err := s.db.Close(); err != nil {
 		panic(err)
 	}
+}
+
+func (s *Store) DeleteAccount(userId int) error {
+	rows, err := s.db.Query("select \"chat_id\" from \"chat_participants\" where \"user_id\"=$1", userId)
+	defer rows.Close()
+	if err != nil {
+		return err
+	}
+	for rows.Next() {
+		var chtid int
+		chtid = 0
+		if err := rows.Scan(&chtid); err != nil {
+			return err
+		}
+		_, err2 := s.db.Exec("DELETE FROM \"messages\" WHERE \"chat_id\" = $1", chtid)
+		if err2 != nil {
+			return err2
+		}
+		_, err2 = s.db.Exec("DELETE FROM \"chat_participants\" WHERE \"chat_id\" = $1", chtid)
+		if err2 != nil {
+			return err2
+		}
+		_, err2 = s.db.Exec("DELETE FROM \"chats\" WHERE \"id\" = $1", chtid)
+		if err2 != nil {
+			return err2
+		}
+		_, err2 = s.db.Exec("DELETE FROM \"users\" WHERE \"id\" = $1", userId)
+		if err2 != nil {
+			return err2
+		}
+
+	}
+	return nil
 }
 func (s *Store) GetMessages(chatId int, limit, offset int) ([]models.Message, error) {
 	msgs := make([]models.Message, 0, limit)

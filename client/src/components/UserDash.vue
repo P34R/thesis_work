@@ -7,7 +7,7 @@
   />
 
   <div class="row  g-0 z bg-danger">
-    <nav class="navbar navbar-light bg-light hdr">
+    <nav class="navbar navbar-light bg-light hdr" style="align-items: end">
       <form class="form-inline">
         <input
             type="search"
@@ -21,8 +21,8 @@
       </form>
       <button @click="findUser()" class="btn btn-outline-success my-2 my-sm-0 srchbtn">Chat now!</button>
       <b class="chtrname">{{ chatterName }}</b>
+      <button @click="delacc" type="button" class="btn btn-dark delbtn">Delete Acc</button>
       <button @click="logout" type="button" class="btn btn-danger lgtbtn">Logout</button>
-
     </nav>
     <div class="col-3 chat-user shadow-lg ">
         <chat-user
@@ -52,6 +52,7 @@
           :key="i.toString()+x.username"
           :message="x.message"
           :username="x.username"
+          :stamp="x.stamp"
         ></the-chat>
        </div>
       </div>
@@ -153,6 +154,7 @@ export default {
           sss.chatterMessages.push({
             message: decryptedMsg,
             username: data.from,
+            stamp: new Date(data.stamp * 1000),
           })
         } else {
          // console.log("we in else ")
@@ -161,6 +163,7 @@ export default {
           sss.chatterMessages.push({
             message: decryptedMsg,
             username: data.from,
+            stamp:new Date(data.stamp * 1000),
           })
         }
 
@@ -193,6 +196,7 @@ export default {
           let decryptedMsg = sss.$cryptojs.AES.decrypt(msgs[i].mess, sss.chatterAESKey).toString(sss.$cryptojs.enc.Utf8)
           sss.chatterMessages.unshift({message: decryptedMsg,
             username: msgs[i].username,
+            stamp:new Date(msgs[i].stamp * 1000),
             })
         }
       }
@@ -206,6 +210,7 @@ export default {
           let decryptedMsg = sss.$cryptojs.AES.decrypt(msgs[i].mess, sss.chatterAESKey).toString(sss.$cryptojs.enc.Utf8)
           sss.chatterMessages.unshift({message: decryptedMsg,
             username: msgs[i].username,
+            stamp:new Date(msgs[i].stamp * 1000),
           })
         }
       }
@@ -289,7 +294,7 @@ export default {
     sendMessage(){
       const sss = this;
       if (sss.Text===""){
-        console.log("yes, return");
+        console.log("empty message, return");
         return;
       }
       let aes = sss.$cryptojs.AES;
@@ -309,6 +314,7 @@ export default {
       sss.chatterMessages.push({
         message:sss.Text,
         username:sss.loggedUsername,
+        stamp: new Date(Date.now()),
       })
       sss.Text=""
     },
@@ -364,6 +370,37 @@ export default {
             });
       }
     },
+    yesorno(){
+      let answer = prompt("This action will delete your account, please accept or decline it" + " (enter yes or no)");
+      if (answer.toLowerCase() === "yes") {
+        return true;
+      } else if (answer.toLowerCase() === "no") {
+        return false;
+      } else {
+        // If the user enters an invalid response, prompt again
+        alert("Please enter 'yes' or 'no'");
+        return this.yesorno();
+      }},
+    delacc(){
+      const sss = this;
+
+      if (this.yesorno()){
+        let pkt = {
+          type: 999,
+          from: sss.loggedUsername,
+          to: "",
+          message: "",
+        }
+        sss.conn.send(JSON.stringify(pkt))
+
+        sss.$router.replace('/');
+        sss.results2=[];
+        sss.conn.close();
+        sss.$store.dispatch('user/addConnection',{conn: null});
+        sss.$store.dispatch('user/addUserKey',{privateKey: null});
+        sss.$store.dispatch('user/addUsername',{username: ""});
+      }
+    },
     logout(){
       const sss = this;
       sss.$router.replace('/');
@@ -416,8 +453,15 @@ export default {
   justify-content: left;
 }
 .hdr .lgtbtn{
-  margin-left: auto;
+  margin-left: 5px;
   margin-right:10px;
+}
+.delbtn{
+  margin-left: auto;
+  margin-right:0px;
+  margin-bottom:4%;
+  font-size: 4px;
+  padding: 0;
 }
 .srchbtn{
   margin-left: 10px;

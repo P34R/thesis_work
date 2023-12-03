@@ -28,9 +28,16 @@ type Packet struct {
 	To      string `json:"to"`
 	Message string `json:"message"`
 }
+type SendiblePacket struct {
+	Type    int    `json:"type"`
+	From    string `json:"from"`
+	To      string `json:"to"`
+	Message string `json:"message"`
+	Stamp   int64  `json:"stamp"`
+}
 type Socket struct {
 	Conn *websocket.Conn
-	In   chan Packet
+	In   chan SendiblePacket
 	Out  chan Packet
 	Quit chan int
 }
@@ -38,7 +45,7 @@ type Socket struct {
 func NewSocket(conn *websocket.Conn) *Socket {
 	return &Socket{
 		Conn: conn,
-		In:   make(chan Packet),
+		In:   make(chan SendiblePacket),
 		Out:  make(chan Packet),
 		Quit: make(chan int),
 	}
@@ -85,7 +92,7 @@ func (c *Connections) SendToFront(mess Packet) bool{
 	}
 	return true
 }*/
-func (c *Connections) SendMessage(mess Packet) bool {
+func (c *Connections) SendMessage(mess SendiblePacket) bool {
 	if c.IsPresent(mess.To) {
 		c.mu.Lock()
 		c.conns[mess.To].In <- mess

@@ -27,7 +27,7 @@
 <script>
 
 
-const SERVER_PUB_KEY = { x: "dbd8137db1ae0ddeb60e4cad188963c9766de468eb2f1c8520c05b121c53bd5b", y: "4f31fa54cbed9e1cd5e7f2c9855e00ebb4db47cba7bcf5667363957278204747" };
+const SERVER_PUB_KEY = { x: "919a3e190688a262da21239706c80a4a5b11f897514bc9dcbae3aa627f72ade5", y: "365e1e475d29cafbc09e72e2147633e535f61c6a6b2edf456b08c7d2abec8290" };
 
 
 export default {
@@ -55,14 +55,14 @@ export default {
         alert("Password can't be empty")
         throw new Error("Password can't be empty")
 
-      }else if (this.Password.length<8 || this.Password.length>32){
-        alert("Password should have length 8 minimum and can't exceed 32 symbols")
+      }else if (this.Password.length<8){
+        alert("Password should have length 8 minimum")
         throw new Error("Password should have length 8 minimum")
       }else if (this.Username===""){
         alert("Username can't be empty")
         throw new Error("Username can't be empty")
-      }else if (this.Username.length<4 || this.Username.length>24){
-        alert("Username should have length 4 minimum and can't exceed 24 symbols")
+      }else if (this.Username.length<4 || this.Username.length>64){
+        alert("Username should have length 4 minimum and can't exceed 64 symbols")
         throw new Error("Username should have length 4 minimum")
       }
       var regexPattern = /^[a-zA-Z0-9]+$/;

@@ -36,7 +36,7 @@
 </template>
 
 <script>
-const SERVER_PUB_KEY = { x: "dbd8137db1ae0ddeb60e4cad188963c9766de468eb2f1c8520c05b121c53bd5b", y: "4f31fa54cbed9e1cd5e7f2c9855e00ebb4db47cba7bcf5667363957278204747" };
+const SERVER_PUB_KEY = { x: "919a3e190688a262da21239706c80a4a5b11f897514bc9dcbae3aa627f72ade5", y: "365e1e475d29cafbc09e72e2147633e535f61c6a6b2edf456b08c7d2abec8290" };
 
 
 
